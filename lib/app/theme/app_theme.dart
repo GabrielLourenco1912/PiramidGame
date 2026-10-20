@@ -158,7 +158,10 @@ class AppTheme {
           borderRadius: BorderRadius.circular(14),
         ),
         labelTextStyle: WidgetStatePropertyAll(
-          textTheme.labelMedium?.copyWith(fontWeight: FontWeight.w600),
+          textTheme.labelMedium?.copyWith(
+            color: colorScheme.onSurface,
+            fontWeight: FontWeight.w600,
+          ),
         ),
       ),
       navigationRailTheme: NavigationRailThemeData(
@@ -170,6 +173,9 @@ class AppTheme {
         selectedIconTheme: IconThemeData(color: colorScheme.primary),
         selectedLabelTextStyle: textTheme.labelLarge?.copyWith(
           color: colorScheme.primary,
+        ),
+        unselectedLabelTextStyle: textTheme.labelLarge?.copyWith(
+          color: colorScheme.onSurfaceVariant,
         ),
       ),
       floatingActionButtonTheme: FloatingActionButtonThemeData(
