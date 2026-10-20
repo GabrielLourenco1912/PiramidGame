@@ -41,6 +41,10 @@ SharedPreferences guarda somente o tema. Firebase Authentication controla a sess
 
 `lib/data` contém os adaptadores de Firebase e SharedPreferences; `lib/domain` contém os modelos, contratos e regras; `lib/presentation` contém ViewModels e telas. A UI acessa somente as ViewModels. O tema fica em `lib/app/theme`.
 
+## Ícone Android
+
+O aplicativo usa a marca do IFPR também no launcher Android, com PNGs para as cinco densidades, ícone adaptativo a partir do Android 8 e suporte a ícones temáticos a partir do Android 13. A origem da marca, os arquivos alterados e o comando para regenerar os recursos estão em [docs/ICONE_ANDROID.md](docs/ICONE_ANDROID.md).
+
 ## Verificação local
 
 ```bash
