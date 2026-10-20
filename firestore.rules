@@ -1,0 +1,147 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    function validPersonLink(d, personId) {
+      return d.usuarioUid == null
+        || getAfter(/databases/$(database)/documents/vinculosUsuarios/$(d.usuarioUid)).data.pessoaId == personId;
+    }
+
+    function validPerson(d) {
+      return d.keys().hasAll(['nome', 'apelido', 'curso', 'turmaAno', 'dataNascimento',
+          'criadoPor', 'usuarioUid', 'ativo', 'criadoEm', 'atualizadoEm'])
+        && d.keys().hasOnly(['nome', 'apelido', 'curso', 'turmaAno', 'dataNascimento',
+          'criadoPor', 'usuarioUid', 'ativo', 'criadoEm', 'atualizadoEm'])
+        && d.nome is string && d.nome.size() > 0 && d.nome.size() <= 120
+        && d.apelido is string && d.apelido.size() > 0 && d.apelido.size() <= 60
+        && d.curso in ['INFO', 'MEC', 'MAMB', 'PROD', 'TADS', 'TGA']
+        && d.turmaAno is int && d.turmaAno >= 1998 && d.turmaAno <= 2026
+        && d.dataNascimento is timestamp
+        && d.dataNascimento >= timestamp.date(1900, 1, 1)
+        && d.dataNascimento <= request.time
+        && d.criadoPor is string
+        && (d.usuarioUid == null || (d.usuarioUid is string && d.usuarioUid.size() > 0))
+        && d.ativo is bool
+        && d.criadoEm is timestamp && d.atualizadoEm == request.time;
+    }
+
+    function star(value) {
+      return value is int && value >= 1 && value <= 5;
+    }
+
+    function validScores(n) {
+      return n is map
+        && n.keys().hasAll(['resenha', 'presenca_vip', 'aura', 'modo_parceiro', 'carisma_natural', 'humor_de_milhoes', 'energia_de_grupo', 'criatividade_caotica', 'modo_atleta', 'talento_de_palco', 'drip_escolar', 'coracao_de_dorama', 'queridinho_dos_professores', 'cerebro_turbo', 'caos_controlado'])
+        && n.keys().hasOnly(['resenha', 'presenca_vip', 'aura', 'modo_parceiro', 'carisma_natural', 'humor_de_milhoes', 'energia_de_grupo', 'criatividade_caotica', 'modo_atleta', 'talento_de_palco', 'drip_escolar', 'coracao_de_dorama', 'queridinho_dos_professores', 'cerebro_turbo', 'caos_controlado'])
+        && star(n.resenha)
+        && star(n.presenca_vip)
+        && star(n.aura)
+        && star(n.modo_parceiro)
+        && star(n.carisma_natural)
+        && star(n.humor_de_milhoes)
+        && star(n.energia_de_grupo)
+        && star(n.criatividade_caotica)
+        && star(n.modo_atleta)
+        && star(n.talento_de_palco)
+        && star(n.drip_escolar)
+        && star(n.coracao_de_dorama)
+        && star(n.queridinho_dos_professores)
+        && star(n.cerebro_turbo)
+        && star(n.caos_controlado);
+    }
+
+    function total(n) {
+      return n.resenha
+        + n.presenca_vip
+        + n.aura
+        + n.modo_parceiro
+        + n.carisma_natural
+        + n.humor_de_milhoes
+        + n.energia_de_grupo
+        + n.criatividade_caotica
+        + n.modo_atleta
+        + n.talento_de_palco
+        + n.drip_escolar
+        + n.coracao_de_dorama
+        + n.queridinho_dos_professores
+        + n.cerebro_turbo
+        + n.caos_controlado;
+    }
+
+    function validEvaluation(d, evaluationId) {
+      let person = get(/databases/$(database)/documents/pessoas/$(d.pessoaId));
+      return d.keys().hasAll(['avaliadorUid', 'pessoaId', 'notas',
+          'pontuacaoTotal', 'dataAvaliacao', 'atualizadoEm'])
+        && d.keys().hasOnly(['avaliadorUid', 'pessoaId', 'notas',
+          'pontuacaoTotal', 'dataAvaliacao', 'atualizadoEm'])
+        && d.avaliadorUid == request.auth.uid
+        && d.pessoaId is string && d.pessoaId.size() > 0
+        && evaluationId == request.auth.uid + '_' + d.pessoaId
+        && person.data.ativo == true
+        && person.data.usuarioUid != request.auth.uid
+        && validScores(d.notas)
+        && d.pontuacaoTotal is int && d.pontuacaoTotal == total(d.notas)
+        && d.dataAvaliacao is timestamp && d.atualizadoEm == request.time;
+    }
+
+    match /usuarios/{uid} {
+      allow read: if signedIn() && request.auth.uid == uid;
+      allow create, update: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasAll(['nome', 'email', 'foto', 'provider'])
+        && request.resource.data.keys().hasOnly(['nome', 'email', 'foto', 'provider'])
+        && request.resource.data.nome is string
+        && request.resource.data.nome.size() <= 200
+        && request.resource.data.email == request.auth.token.get('email', '')
+        && (request.resource.data.foto == null || request.resource.data.foto is string)
+        && request.resource.data.provider in ['password', 'google.com'];
+      allow delete: if false;
+    }
+
+    match /pessoas/{personId} {
+      allow read: if signedIn();
+      allow create: if signedIn() && validPerson(request.resource.data)
+        && request.resource.data.criadoPor == request.auth.uid
+        && (request.resource.data.usuarioUid == null || request.resource.data.usuarioUid == request.auth.uid)
+        && validPersonLink(request.resource.data, personId)
+        && request.resource.data.ativo == true
+        && request.resource.data.criadoEm == request.time;
+      allow update: if signedIn() && resource.data.criadoPor == request.auth.uid
+        && resource.data.ativo == true && validPerson(request.resource.data)
+        && request.resource.data.criadoPor == resource.data.criadoPor
+        && request.resource.data.usuarioUid == resource.data.usuarioUid
+        && validPersonLink(request.resource.data, personId)
+        && request.resource.data.criadoEm == resource.data.criadoEm;
+      // A remoção usa ativo=false, preservando o histórico.
+      allow delete: if false;
+    }
+
+    match /vinculosUsuarios/{uid} {
+      allow get: if signedIn() && request.auth.uid == uid;
+      allow list: if false;
+      allow create: if signedIn() && request.auth.uid == uid
+        && request.resource.data.keys().hasAll(['pessoaId'])
+        && request.resource.data.keys().hasOnly(['pessoaId'])
+        && request.resource.data.pessoaId is string
+        && request.resource.data.pessoaId.size() > 0
+        && getAfter(/databases/$(database)/documents/pessoas/$(request.resource.data.pessoaId)).data.usuarioUid == uid;
+      // A remoção lógica de uma pessoa também preserva sua identidade.
+      allow update, delete: if false;
+    }
+
+    match /avaliacoes/{evaluationId} {
+      // Os usuários autenticados leem as avaliações para consolidar o ranking global.
+      allow read: if signedIn();
+      allow create: if signedIn() && validEvaluation(request.resource.data, evaluationId)
+        && request.resource.data.dataAvaliacao == request.time;
+      allow update: if signedIn() && resource.data.avaliadorUid == request.auth.uid
+        && validEvaluation(request.resource.data, evaluationId)
+        && request.resource.data.avaliadorUid == resource.data.avaliadorUid
+        && request.resource.data.pessoaId == resource.data.pessoaId
+        && request.resource.data.dataAvaliacao == resource.data.dataAvaliacao;
+      allow delete: if signedIn() && resource.data.avaliadorUid == request.auth.uid;
+    }
+  }
+}

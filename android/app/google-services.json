@@ -1,0 +1,47 @@
+{
+  "project_info": {
+    "project_number": "637553615926",
+    "project_id": "piramidgame",
+    "storage_bucket": "piramidgame.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:637553615926:android:b82b3350994db407e66497",
+        "android_client_info": {
+          "package_name": "com.example.atividade_mobile"
+        }
+      },
+      "oauth_client": [
+        {
+          "client_id": "637553615926-qliq7dfopj1p281q3hh7inc2f6a9je5d.apps.googleusercontent.com",
+          "client_type": 1,
+          "android_info": {
+            "package_name": "com.example.atividade_mobile",
+            "certificate_hash": "b6de790061f39df497619b543151284ffbd3d977"
+          }
+        },
+        {
+          "client_id": "637553615926-rujoel7icdiscsjp7cul44475mmhg9ls.apps.googleusercontent.com",
+          "client_type": 3
+        }
+      ],
+      "api_key": [
+        {
+          "current_key": "AIzaSyCjy9_-VjNcPhmomvMH7R7gDxgj_nxTJ4M"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": [
+            {
+              "client_id": "637553615926-rujoel7icdiscsjp7cul44475mmhg9ls.apps.googleusercontent.com",
+              "client_type": 3
+            }
+          ]
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
