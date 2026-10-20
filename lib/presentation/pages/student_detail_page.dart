@@ -211,12 +211,11 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
                 Card(
                   child: Padding(
                     padding: const EdgeInsets.all(16),
-                    child: Wrap(
-                      spacing: 16,
-                      runSpacing: 8,
-                      alignment: WrapAlignment.spaceBetween,
+                    child: Row(
+                      crossAxisAlignment: CrossAxisAlignment.center,
                       children: [
-                        Text(criterion.title),
+                        Expanded(child: Text(criterion.title)),
+                        const SizedBox(width: 16),
                         StarRating(
                           value: ownEvaluation.notas.scoreFor(criterion.id),
                           size: 24,
