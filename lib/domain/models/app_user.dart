@@ -12,6 +12,14 @@ class AppUser {
   final String nome;
   final String? foto;
   final String provider;
+
+  AppUser withPhoto(String? photo) => AppUser(
+    uid: uid,
+    email: email,
+    nome: nome,
+    foto: photo,
+    provider: provider,
+  );
 }
 
 class AuthCredentials {

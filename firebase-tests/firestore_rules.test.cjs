@@ -75,6 +75,51 @@ test('perfil do usuário é privado e só pode ser gravado pelo próprio UID', a
   await assertFails(updateDoc(doc(db('alice'), 'usuarios/alice'), { senha: 'proibida' }));
 });
 
+test('troca de foto grava conta e pessoa vinculada no mesmo lote', async () => {
+  const alice = db('alice');
+  const userRef = doc(alice, 'usuarios/alice');
+  const personRef = doc(alice, 'pessoas/self');
+  await setDoc(userRef, { nome: 'Alice', email: 'alice@example.com', foto: null, provider: 'password' });
+  await createLinkedPerson(alice, 'self', 'alice');
+  const foto = 'https://firebasestorage.googleapis.com/v0/b/demo-piramidgame/o/usuarios%2Falice%2Fperfil%2Ffoto.png?alt=media';
+  const batch = writeBatch(alice);
+  batch.update(userRef, { foto });
+  batch.update(personRef, { foto, atualizadoEm: serverTimestamp() });
+  await assertSucceeds(batch.commit());
+  assert.equal((await getDoc(doc(db('bob'), 'pessoas/self'))).data().foto, foto);
+  await assertFails(getDoc(doc(db('bob'), 'usuarios/alice')));
+  const removal = writeBatch(alice);
+  removal.update(userRef, { foto: null });
+  removal.update(personRef, { foto: null, atualizadoEm: serverTimestamp() });
+  await assertSucceeds(removal.commit());
+});
+
+test('foto da pessoa só pode ser alterada pela conta representada', async () => {
+  await seedPerson('alice'); // Perfil criado por outra conta, inclusive legado sem índice.
+  const alice = db('alice');
+  const foto = 'https://example.com/alice.png';
+  await setDoc(doc(alice, 'usuarios/alice'), { nome: 'Alice', email: 'alice@example.com', foto, provider: 'password' });
+  await assertSucceeds(updateDoc(doc(alice, 'pessoas/ana'), { foto, atualizadoEm: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db('bob'), 'pessoas/ana'), { foto: null, atualizadoEm: serverTimestamp() }));
+  await assertFails(updateDoc(doc(db('owner'), 'pessoas/ana'), { foto: null, atualizadoEm: serverTimestamp() }));
+  await assertFails(updateDoc(doc(alice, 'pessoas/ana'), { foto: 'https://example.com/forged.png', atualizadoEm: serverTimestamp() }));
+  await assertFails(updateDoc(doc(alice, 'pessoas/ana'), { foto, nome: 'Outro nome', atualizadoEm: serverTimestamp() }));
+});
+
+test('perfil novo herda a foto da própria conta e rejeita foto de terceiros', async () => {
+  const alice = db('alice');
+  const foto = 'https://example.com/alice.png';
+  await setDoc(doc(alice, 'usuarios/alice'), { nome: 'Alice', email: 'alice@example.com', foto, provider: 'password' });
+  const batch = writeBatch(alice);
+  batch.set(doc(alice, 'pessoas/self'), { ...person('alice', 'alice'), foto });
+  batch.set(doc(alice, 'vinculosUsuarios/alice'), { pessoaId: 'self' });
+  await assertSucceeds(batch.commit());
+  await assertFails(setDoc(doc(alice, 'pessoas/third-party'), { ...person(), foto }));
+  await assertFails(updateDoc(doc(alice, 'usuarios/alice'), { foto: 'data:image/png;base64,AAAA' }));
+  await assertFails(updateDoc(doc(alice, 'usuarios/alice'), { foto: 123 }));
+  await assertFails(updateDoc(doc(alice, 'usuarios/alice'), { foto: 'https://' + 'a'.repeat(2048) }));
+});
+
 test('cadastro de pessoa valida criador, curso, ano, nascimento e vínculo', async () => {
   const alice = db('alice');
   await assertSucceeds(setDoc(doc(alice, 'pessoas/ana'), person()));

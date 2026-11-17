@@ -37,6 +37,9 @@ class AppViewModels {
            restore: RestoreSessionUseCase(authRepository),
            watch: WatchSessionUseCase(authRepository),
            signOut: LogoutUseCase(authRepository),
+           changePhoto: ChangeProfilePhotoUseCase(authRepository),
+           recoverPhoto: RecoverProfilePhotoUseCase(authRepository),
+           removePhoto: RemoveProfilePhotoUseCase(authRepository),
          ),
        ),
        students = StudentViewModel(

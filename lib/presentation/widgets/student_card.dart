@@ -34,7 +34,11 @@ class StudentCard extends StatelessWidget {
               Row(
                 crossAxisAlignment: CrossAxisAlignment.center,
                 children: [
-                  StudentAvatar(name: student.nome),
+                  StudentAvatar(
+                    name: student.nome,
+                    photoUrl: student.foto,
+                    userUid: student.usuarioUid,
+                  ),
                   const SizedBox(width: 14),
                   Expanded(
                     child: Column(

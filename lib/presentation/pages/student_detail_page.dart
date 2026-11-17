@@ -9,6 +9,7 @@ import '../../core/utils/date_formatters.dart';
 import '../../domain/models/student.dart';
 import '../widgets/confirm_delete_dialog.dart';
 import '../widgets/responsive_page.dart';
+import '../widgets/profile_photo_editor.dart';
 import '../widgets/star_rating.dart';
 import '../widgets/student_avatar.dart';
 
@@ -123,7 +124,15 @@ class _StudentDetailPageState extends State<StudentDetailPage> {
                 padding: const EdgeInsets.all(24),
                 child: Column(
                   children: [
-                    StudentAvatar(name: person.nome, size: 80),
+                    if (isSelf)
+                      ProfilePhotoEditor(name: person.nome, size: 80)
+                    else
+                      StudentAvatar(
+                        name: person.nome,
+                        photoUrl: person.foto,
+                        userUid: person.usuarioUid,
+                        size: 80,
+                      ),
                     const SizedBox(height: 16),
                     Text(
                       person.nome,

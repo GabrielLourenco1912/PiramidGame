@@ -4,6 +4,8 @@ Aplicativo Flutter adaptado à especificação “PiramidGame IFPR-Pgua — Espe
 
 Possui cadastro/login com e-mail e senha ou Google, restauração da sessão, logout, cadastro de pessoas separado das avaliações, 15 critérios com estrelas, edição de opinião, ranking pessoal e ranking global por média. A navegação usa go_router; o estado usa Flutter Signals; as operações usam Command e Result.
 
+A foto de perfil pode ser escolhida na galeria ou tirada com a câmera nativa, tocando no avatar da tela Início ou do próprio perfil vinculado. As imagens ficam no Firebase Storage e suas URLs no Firestore. [Configuração do Storage, permissões e passos manuais no console](docs/FOTO_PERFIL.md).
+
 ## Configuração
 
 Siga [Instrucoes_Firebase_PiramidGame.pdf](Instrucoes_Firebase_PiramidGame.pdf) ou [o guia em texto](docs/FIREBASE.md).
@@ -23,7 +25,7 @@ Android e web são os alvos principais. O Android usa `com.example.atividade_mob
 ## Dados e regras
 
 - `usuarios/{uid}`: perfil da conta, acessível apenas por seu proprietário.
-- `pessoas/{id}`: dados cadastrais; `criadoPor` define quem pode editar/remover e `usuarioUid` identifica a conta representada.
+- `pessoas/{id}`: dados cadastrais e foto opcional; `criadoPor` define quem pode editar/remover os dados e `usuarioUid` identifica a conta que pode trocar sua foto.
 - `vinculosUsuarios/{uid}`: índice imutável com `pessoaId`, que garante um único perfil vinculado por conta.
 - `avaliacoes/{uid}_{pessoaId}`: uma avaliação por usuário/pessoa, com mapa de 15 notas, soma e datas do servidor.
 
@@ -33,7 +35,7 @@ Para associar uma pessoa existente, o responsável pelo Firebase deve conferir a
 
 A remoção é lógica (`ativo=false`): retira o perfil das listas e rankings e mantém o histórico. Pessoas sem avaliações não entram nos rankings. Empates seguem a ordem alfabética. Os dados são buscados ao abrir as telas e ao atualizar. O ranking global é calculado no cliente, adequado ao escopo didático; consultas a todas as avaliações podem precisar de agregação no servidor se o volume crescer.
 
-SharedPreferences guarda somente o tema. Firebase Authentication controla a sessão; o Firestore guarda os dados principais. SQLite/Drift foram removidos. Dados de instalações da versão anterior não são migrados automaticamente para a nuvem.
+SharedPreferences guarda o tema e, temporariamente, o UID de uma seleção de foto pendente para recuperação no Android. Firebase Authentication controla a sessão; o Firestore guarda os dados principais e o Cloud Storage guarda as fotos. SQLite/Drift foram removidos. Dados de instalações da versão anterior não são migrados automaticamente para a nuvem.
 
 ## Arquitetura
 
@@ -54,7 +56,7 @@ npm --prefix firebase-tests ci
 npm --prefix firebase-tests test
 ```
 
-Os testes Flutter usam Firestore simulado para verificar regras de negócio e fluxos de interface. Os testes em `firebase-tests` usam o emulador oficial para validar `firestore.rules`, incluindo propriedade, vínculo, unicidade, notas, soma e remoção. O projeto de teste `demo-piramidgame` não acessa o Firebase real. O emulador precisa de Node e Java compatíveis com o Firebase CLI.
+Os testes Flutter usam Firestore simulado para verificar regras de negócio, fotos e fluxos de interface. Os testes em `firebase-tests` usam os emuladores oficiais para validar `firestore.rules` e `storage.rules`, incluindo propriedade, vínculo, unicidade, notas, soma, remoção e restrições dos arquivos. O projeto de teste `demo-piramidgame` não acessa o Firebase real. Os emuladores precisam de Node e Java compatíveis com o Firebase CLI.
 
 Para regenerar o PDF:
 

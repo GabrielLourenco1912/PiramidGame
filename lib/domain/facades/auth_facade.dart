@@ -1,5 +1,6 @@
 import '../../core/result/result.dart';
 import '../models/app_user.dart';
+import '../models/profile_photo_source.dart';
 import '../use_cases/auth_use_cases.dart';
 
 class AuthFacade {
@@ -10,6 +11,9 @@ class AuthFacade {
     required this.restore,
     required this.watch,
     required this.signOut,
+    required this.changePhoto,
+    required this.recoverPhoto,
+    required this.removePhoto,
   });
 
   final RegisterUserUseCase registerUser;
@@ -18,6 +22,9 @@ class AuthFacade {
   final RestoreSessionUseCase restore;
   final WatchSessionUseCase watch;
   final LogoutUseCase signOut;
+  final ChangeProfilePhotoUseCase changePhoto;
+  final RecoverProfilePhotoUseCase recoverPhoto;
+  final RemoveProfilePhotoUseCase removePhoto;
 
   Future<Result<AppUser>> register(AuthCredentials input) =>
       registerUser(input);
@@ -26,4 +33,8 @@ class AuthFacade {
   Future<Result<AppUser?>> current() => restore();
   Stream<Result<AppUser?>> session() => watch();
   Future<Result<void>> logout() => signOut();
+  Future<Result<AppUser?>> changeProfilePhoto(ProfilePhotoSource source) =>
+      changePhoto(source);
+  Future<Result<AppUser?>> recoverProfilePhoto() => recoverPhoto();
+  Future<Result<AppUser>> removeProfilePhoto() => removePhoto();
 }

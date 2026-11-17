@@ -34,6 +34,8 @@ class RankingCard extends StatelessWidget {
               const SizedBox(width: 12),
               StudentAvatar(
                 name: person.nome,
+                photoUrl: person.foto,
+                userUid: person.usuarioUid,
                 size: 42,
                 highlighted: position <= 3,
               ),

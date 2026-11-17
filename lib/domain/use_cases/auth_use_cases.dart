@@ -1,5 +1,6 @@
 import '../../core/result/result.dart';
 import '../models/app_user.dart';
+import '../models/profile_photo_source.dart';
 import '../repositories/auth_repository.dart';
 
 String? _validateCredentials(
@@ -62,4 +63,39 @@ class LogoutUseCase {
   const LogoutUseCase(this._repository);
   final AuthRepository _repository;
   Future<Result<void>> call() => _repository.logout();
+}
+
+class ChangeProfilePhotoUseCase {
+  const ChangeProfilePhotoUseCase(this._repository);
+  final AuthRepository _repository;
+
+  Future<Result<AppUser?>> call(ProfilePhotoSource source) {
+    if (_repository.currentUser == null) {
+      return Future.value(
+        const Failure('Entre na sua conta para alterar a foto.'),
+      );
+    }
+    return _repository.changeProfilePhoto(source);
+  }
+}
+
+class RecoverProfilePhotoUseCase {
+  const RecoverProfilePhotoUseCase(this._repository);
+  final AuthRepository _repository;
+
+  Future<Result<AppUser?>> call() => _repository.recoverProfilePhoto();
+}
+
+class RemoveProfilePhotoUseCase {
+  const RemoveProfilePhotoUseCase(this._repository);
+  final AuthRepository _repository;
+
+  Future<Result<AppUser>> call() {
+    if (_repository.currentUser == null) {
+      return Future.value(
+        const Failure('Entre na sua conta para alterar a foto.'),
+      );
+    }
+    return _repository.removeProfilePhoto();
+  }
 }

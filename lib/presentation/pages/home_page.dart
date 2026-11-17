@@ -4,6 +4,7 @@ import 'package:signals_flutter/signals_flutter.dart';
 import '../../app/app_dependencies.dart';
 import '../../core/constants/app_constants.dart';
 import '../widgets/ifpr_mark.dart';
+import '../widgets/profile_photo_editor.dart';
 import '../widgets/responsive_page.dart';
 
 class HomePage extends SignalStatefulWidget {
@@ -62,7 +63,17 @@ class _HomePageState extends State<HomePage> {
               child: Column(
                 crossAxisAlignment: CrossAxisAlignment.start,
                 children: [
-                  const IfprMark(size: 44),
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                    children: [
+                      const IfprMark(size: 44),
+                      ProfilePhotoEditor(
+                        name: user?.nome.isNotEmpty == true
+                            ? user!.nome
+                            : user?.email ?? '',
+                      ),
+                    ],
+                  ),
                   const SizedBox(height: 16),
                   Text(
                     'O campus no mesmo ranking.',
@@ -82,6 +93,11 @@ class _HomePageState extends State<HomePage> {
               ),
             ),
             const SizedBox(height: 20),
+            if (dependencies.authViewModel.photoErrorMessage.value
+                case final String photoError) ...[
+              Text(photoError, style: TextStyle(color: colors.error)),
+              const SizedBox(height: 12),
+            ],
             Wrap(
               spacing: 12,
               runSpacing: 8,

@@ -19,13 +19,51 @@ class FirestoreService {
   static const _profileAlreadyLinked =
       'Sua conta já está vinculada a uma pessoa.';
 
-  Future<void> saveUser(AppUser user) {
-    return _firestore.collection('usuarios').doc(user.uid).set({
-      'nome': user.nome,
-      'email': user.email,
-      'foto': user.foto,
-      'provider': user.provider,
-    }, SetOptions(merge: true));
+  Future<AppUser> saveUser(AppUser user) {
+    final reference = _firestore.collection('usuarios').doc(user.uid);
+    return _firestore.runTransaction((transaction) async {
+      final previous = await transaction.get(reference);
+      // O perfil salvo é a fonte da foto, inclusive após novo login com Google.
+      final saved = user.withPhoto(
+        previous.exists ? previous.data()!['foto'] as String? : user.foto,
+      );
+      transaction.set(reference, _userData(saved));
+      return saved;
+    });
+  }
+
+  Future<({AppUser user, String? previousPhoto})> updateUserPhoto(
+    AppUser user,
+    String? photo,
+  ) async {
+    final link = await _userLinks.doc(user.uid).get();
+    String? personId = link.data()?['pessoaId'] as String?;
+    if (personId == null) {
+      // Também atende vínculos antigos criados pelo administrador sem o índice.
+      final people = await _people
+          .where('usuarioUid', isEqualTo: user.uid)
+          .limit(1)
+          .get();
+      if (people.docs.isNotEmpty) personId = people.docs.first.id;
+    }
+    final reference = _firestore.collection('usuarios').doc(user.uid);
+    final personReference = personId == null ? null : _people.doc(personId);
+    return _firestore.runTransaction((transaction) async {
+      final previous = await transaction.get(reference);
+      final person = personReference == null
+          ? null
+          : await transaction.get(personReference);
+      final saved = user.withPhoto(photo);
+      transaction.set(reference, _userData(saved));
+      if (person?.data()?['usuarioUid'] == user.uid &&
+          person?.data()?['ativo'] == true) {
+        transaction.update(personReference!, {
+          'foto': photo,
+          'atualizadoEm': FieldValue.serverTimestamp(),
+        });
+      }
+      return (user: saved, previousPhoto: previous.data()?['foto'] as String?);
+    });
   }
 
   Future<List<Student>> fetchStudents() async {
@@ -71,10 +109,14 @@ class FirestoreService {
       await _firestore.runTransaction((transaction) async {
         final currentLink = await transaction.get(link);
         if (currentLink.exists) throw StateError(_profileAlreadyLinked);
+        final profile = await transaction.get(
+          _firestore.collection('usuarios').doc(uid),
+        );
         // O documento por UID serializa cadastros em aparelhos diferentes.
         transaction.set(link, {'pessoaId': document.id});
-        transaction.set(document, data);
+        transaction.set(document, {...data, 'foto': profile.data()?['foto']});
       });
+      return _personFromDocument(await document.get());
     }
     return created;
   }
@@ -164,6 +206,7 @@ class FirestoreService {
     'dataNascimento': Timestamp.fromDate(person.dataNascimento),
     'criadoPor': person.criadoPor,
     'usuarioUid': person.usuarioUid,
+    'foto': person.foto,
     'ativo': person.ativo,
   };
 
@@ -180,9 +223,17 @@ class FirestoreService {
       dataNascimento: (data['dataNascimento'] as Timestamp).toDate(),
       criadoPor: data['criadoPor'] as String,
       usuarioUid: data['usuarioUid'] as String?,
+      foto: data['foto'] as String?,
       ativo: data['ativo'] as bool,
     );
   }
+
+  static Map<String, dynamic> _userData(AppUser user) => {
+    'nome': user.nome,
+    'email': user.email,
+    'foto': user.foto,
+    'provider': user.provider,
+  };
 
   static Evaluation _evaluationFromDocument(
     DocumentSnapshot<Map<String, dynamic>> document,

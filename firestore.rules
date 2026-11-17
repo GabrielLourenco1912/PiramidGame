@@ -14,7 +14,7 @@ service cloud.firestore {
       return d.keys().hasAll(['nome', 'apelido', 'curso', 'turmaAno', 'dataNascimento',
           'criadoPor', 'usuarioUid', 'ativo', 'criadoEm', 'atualizadoEm'])
         && d.keys().hasOnly(['nome', 'apelido', 'curso', 'turmaAno', 'dataNascimento',
-          'criadoPor', 'usuarioUid', 'ativo', 'criadoEm', 'atualizadoEm'])
+          'criadoPor', 'usuarioUid', 'foto', 'ativo', 'criadoEm', 'atualizadoEm'])
         && d.nome is string && d.nome.size() > 0 && d.nome.size() <= 120
         && d.apelido is string && d.apelido.size() > 0 && d.apelido.size() <= 60
         && d.curso in ['INFO', 'MEC', 'MAMB', 'PROD', 'TADS', 'TGA']
@@ -24,8 +24,14 @@ service cloud.firestore {
         && d.dataNascimento <= request.time
         && d.criadoPor is string
         && (d.usuarioUid == null || (d.usuarioUid is string && d.usuarioUid.size() > 0))
+        && validPhoto(d.get('foto', null))
         && d.ativo is bool
         && d.criadoEm is timestamp && d.atualizadoEm == request.time;
+    }
+
+    function validPhoto(photo) {
+      return photo == null
+        || (photo is string && photo.size() <= 2048 && photo.matches('https://.*'));
     }
 
     function star(value) {
@@ -95,7 +101,7 @@ service cloud.firestore {
         && request.resource.data.nome is string
         && request.resource.data.nome.size() <= 200
         && request.resource.data.email == request.auth.token.get('email', '')
-        && (request.resource.data.foto == null || request.resource.data.foto is string)
+        && validPhoto(request.resource.data.foto)
         && request.resource.data.provider in ['password', 'google.com'];
       allow delete: if false;
     }
@@ -106,14 +112,22 @@ service cloud.firestore {
         && request.resource.data.criadoPor == request.auth.uid
         && (request.resource.data.usuarioUid == null || request.resource.data.usuarioUid == request.auth.uid)
         && validPersonLink(request.resource.data, personId)
+        && (request.resource.data.get('foto', null) == null
+          || (request.resource.data.usuarioUid == request.auth.uid
+            && request.resource.data.foto == getAfter(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.foto))
         && request.resource.data.ativo == true
         && request.resource.data.criadoEm == request.time;
-      allow update: if signedIn() && resource.data.criadoPor == request.auth.uid
-        && resource.data.ativo == true && validPerson(request.resource.data)
+      allow update: if signedIn() && resource.data.ativo == true
+        && validPerson(request.resource.data)
         && request.resource.data.criadoPor == resource.data.criadoPor
         && request.resource.data.usuarioUid == resource.data.usuarioUid
-        && validPersonLink(request.resource.data, personId)
-        && request.resource.data.criadoEm == resource.data.criadoEm;
+        && request.resource.data.criadoEm == resource.data.criadoEm
+        && ((resource.data.criadoPor == request.auth.uid
+            && validPersonLink(request.resource.data, personId)
+            && request.resource.data.get('foto', null) == resource.data.get('foto', null))
+          || (resource.data.usuarioUid == request.auth.uid
+            && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['foto', 'atualizadoEm'])
+            && request.resource.data.get('foto', null) == getAfter(/databases/$(database)/documents/usuarios/$(request.auth.uid)).data.foto));
       // A remoção usa ativo=false, preservando o histórico.
       allow delete: if false;
     }

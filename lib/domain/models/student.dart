@@ -9,6 +9,7 @@ class Student {
     required this.dataNascimento,
     this.criadoPor = '',
     this.usuarioUid,
+    this.foto,
     this.ativo = true,
   });
 
@@ -22,6 +23,7 @@ class Student {
       dataNascimento: DateTime.parse(json['dataNascimento'] as String),
       criadoPor: json['criadoPor'] as String? ?? '',
       usuarioUid: json['usuarioUid'] as String?,
+      foto: json['foto'] as String?,
       ativo: json['ativo'] as bool? ?? true,
     );
   }
@@ -37,6 +39,7 @@ class Student {
   /// Vínculo opcional e único com a conta desta pessoa, inclusive se inativa.
   /// Também é usado para impedir a autoavaliação.
   final String? usuarioUid;
+  final String? foto;
   final bool ativo;
 
   Student copyWith({
@@ -58,6 +61,7 @@ class Student {
       dataNascimento: dataNascimento ?? this.dataNascimento,
       criadoPor: criadoPor ?? this.criadoPor,
       usuarioUid: usuarioUid,
+      foto: foto,
       ativo: ativo ?? this.ativo,
     );
   }
@@ -72,6 +76,7 @@ class Student {
       'dataNascimento': dataNascimento.toIso8601String(),
       'criadoPor': criadoPor,
       'usuarioUid': usuarioUid,
+      'foto': foto,
       'ativo': ativo,
     };
   }

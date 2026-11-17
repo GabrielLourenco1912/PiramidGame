@@ -7,6 +7,7 @@ import 'package:atividade_mobile/data/repositories/theme_repository_impl.dart';
 import 'package:atividade_mobile/data/services/firestore_service.dart';
 import 'package:atividade_mobile/data/services/theme_local_service.dart';
 import 'package:atividade_mobile/domain/models/app_user.dart';
+import 'package:atividade_mobile/domain/models/profile_photo_source.dart';
 import 'package:atividade_mobile/domain/models/evaluation.dart';
 import 'package:atividade_mobile/domain/models/popularity_score.dart';
 import 'package:atividade_mobile/domain/models/student.dart';
@@ -19,6 +20,34 @@ class TestAuthRepository implements AuthRepository {
   final _changes = StreamController<Result<AppUser?>>.broadcast(sync: true);
   int loginCalls = 0;
   int registerCalls = 0;
+  int photoCalls = 0;
+  ProfilePhotoSource? lastPhotoSource;
+  Result<AppUser?>? photoResult;
+  Result<AppUser?>? recoveredPhoto;
+
+  @override
+  Future<Result<AppUser?>> changeProfilePhoto(ProfilePhotoSource source) async {
+    photoCalls++;
+    lastPhotoSource = source;
+    final result = photoResult ?? const Success<AppUser?>(null);
+    if (result case Success<AppUser?>(data: final AppUser user)) setUser(user);
+    return result;
+  }
+
+  @override
+  Future<Result<AppUser?>> recoverProfilePhoto() async =>
+      recoveredPhoto ?? const Success(null);
+
+  @override
+  Future<Result<AppUser>> removeProfilePhoto() async {
+    final user = currentUser;
+    if (user == null) {
+      return const Failure('Entre na sua conta para alterar a foto.');
+    }
+    final updated = user.withPhoto(null);
+    setUser(updated);
+    return Success(updated);
+  }
 
   @override
   AppUser? currentUser;

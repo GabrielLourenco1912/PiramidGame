@@ -5,6 +5,7 @@ import '../../core/command/command.dart';
 import '../../core/result/result.dart';
 import '../../domain/facades/auth_facade.dart';
 import '../../domain/models/app_user.dart';
+import '../../domain/models/profile_photo_source.dart';
 
 class AuthViewModel extends ChangeNotifier {
   AuthViewModel(this._facade) {
@@ -15,9 +16,20 @@ class AuthViewModel extends ChangeNotifier {
       (AuthCredentials input) => _authenticate(() => _facade.register(input)),
     );
     loginGoogleCommand = Command(() => _authenticate(_facade.google));
+    changeProfilePhotoCommand = Command1(
+      (ProfilePhotoSource source) =>
+          _changePhoto(() => _facade.changeProfilePhoto(source)),
+    );
+    recoverProfilePhotoCommand = Command(
+      () => _changePhoto(_facade.recoverProfilePhoto),
+    );
+    removeProfilePhotoCommand = Command(
+      () => _changePhoto(_facade.removeProfilePhoto),
+    );
     restoreSessionCommand = Command(_restore);
     finishSplashCommand = Command(() async {
       if (!initialized.value) await _restore();
+      if (isAuthenticated) await recoverProfilePhotoCommand.execute();
       splashFinished.value = true;
       notifyListeners();
       return const Success<void>(null);
@@ -56,6 +68,8 @@ class AuthViewModel extends ChangeNotifier {
   final splashFinished = signal(false);
   final busy = signal(false);
   final errorMessage = signal<String?>(null);
+  final photoBusy = signal(false);
+  final photoErrorMessage = signal<String?>(null);
 
   late final Command1<AuthCredentials, AppUser> loginCommand;
   late final Command1<AuthCredentials, AppUser> registerCommand;
@@ -63,11 +77,15 @@ class AuthViewModel extends ChangeNotifier {
   late final Command<AppUser?> restoreSessionCommand;
   late final Command<void> logoutCommand;
   late final Command<void> finishSplashCommand;
+  late final Command1<ProfilePhotoSource, AppUser?> changeProfilePhotoCommand;
+  late final Command<AppUser?> recoverProfilePhotoCommand;
+  late final Command<AppUser?> removeProfilePhotoCommand;
 
   bool get isAuthenticated => user.value != null;
 
   void _applySession(Result<AppUser?> result) {
     if (result case Success<AppUser?>(:final data)) {
+      if (data?.uid != user.value?.uid) photoErrorMessage.value = null;
       user.value = data;
       errorMessage.value = null;
     } else if (result case Failure(:final message)) {
@@ -76,6 +94,39 @@ class AuthViewModel extends ChangeNotifier {
     }
     initialized.value = true;
     notifyListeners();
+  }
+
+  Future<Result<AppUser?>> _changePhoto(
+    Future<Result<AppUser?>> Function() action,
+  ) async {
+    if (busy.value) return const Failure('Aguarde a ação atual terminar.');
+    final uid = user.value?.uid;
+    if (uid == null) {
+      return const Failure('Entre na sua conta para alterar a foto.');
+    }
+    busy.value = true;
+    photoBusy.value = true;
+    photoErrorMessage.value = null;
+    try {
+      final result = await action();
+      if (user.value?.uid != uid) {
+        return const Failure(
+          'Sua sessão mudou. Entre novamente para alterar a foto.',
+        );
+      }
+      if (result case Success<AppUser?>(:final data)) {
+        if (data != null && data.uid == uid) {
+          user.value = data;
+          notifyListeners();
+        }
+      } else if (result case Failure(:final message)) {
+        photoErrorMessage.value = message;
+      }
+      return result;
+    } finally {
+      photoBusy.value = false;
+      busy.value = false;
+    }
   }
 
   Future<Result<AppUser?>> _restore() async {

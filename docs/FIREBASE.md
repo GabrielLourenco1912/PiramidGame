@@ -1,6 +1,6 @@
 # PiramidGame — configuração do Firebase
 
-Guia simples para conectar esta adaptação ao seu projeto. Faça os passos na ordem. O aplicativo usa Firebase Authentication e Cloud Firestore. As contas, pessoas e avaliações são criadas pelo próprio app.
+Guia simples para conectar esta adaptação ao seu projeto. Faça os passos na ordem. O aplicativo usa Firebase Authentication, Cloud Firestore e Cloud Storage para fotos de perfil. As contas, pessoas e avaliações são criadas pelo próprio app.
 
 ## 1. Criar o projeto e habilitar os serviços
 
@@ -10,7 +10,7 @@ Em Authentication > Sign-in method, habilite E-mail/senha e Google. No provedor 
 
 Em Firestore Database, clique em Criar banco de dados. Use o banco padrão, identificado como (default), na edição Standard. Escolha a região e inicie em modo de produção. Você publicará as regras do projeto no passo 4.
 
-Não é necessário criar coleções manualmente, habilitar Storage ou configurar Cloud Functions. Os rankings são calculados pelo aplicativo a partir das avaliações do Firestore.
+Não é necessário criar coleções manualmente ou configurar Cloud Functions. Para as fotos de perfil, [habilite o Cloud Storage e publique suas regras seguindo este guia](FOTO_PERFIL.md). Os rankings são calculados pelo aplicativo a partir das avaliações do Firestore.
 
 ## 2. Conectar o projeto Flutter
 
@@ -93,7 +93,7 @@ Crie uma conta, cadastre duas pessoas e avalie uma delas. Confira as coleções:
 - vinculosUsuarios/{uid}: pessoaId; índice exclusivo e imutável, acessível apenas pela própria conta.
 - avaliacoes/{uid}_{pessoaId}: avaliador, pessoa, mapa notas, total e datas; usuários autenticados leem as avaliações para calcular o ranking global.
 
-Teste também: fechar e reabrir o app; sair da conta; entrar com Google; editar a avaliação; alternar o tema. O tema é a única informação salva em SharedPreferences.
+Teste também: fechar e reabrir o app; sair da conta; entrar com Google; editar a avaliação; alternar o tema; trocar e remover a foto de perfil. SharedPreferences guarda o tema e, temporariamente, o UID de uma seleção de foto pendente para recuperação no Android.
 
 Com duas contas avaliando a mesma pessoa, o ranking pessoal deve mostrar só a opinião da conta atual. O global deve mostrar a média dos totais e a quantidade de avaliações. Editar uma opinião deve manter um único documento para o mesmo usuário e pessoa.
 

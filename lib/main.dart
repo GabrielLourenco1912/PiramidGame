@@ -1,7 +1,9 @@
 import 'package:cloud_firestore/cloud_firestore.dart';
 import 'package:firebase_auth/firebase_auth.dart';
 import 'package:firebase_core/firebase_core.dart';
+import 'package:firebase_storage/firebase_storage.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 import 'app/app_viewmodels.dart';
 import 'app/app_widget.dart';
@@ -11,6 +13,8 @@ import 'data/repositories/student_repository_impl.dart';
 import 'data/repositories/theme_repository_impl.dart';
 import 'data/services/auth_service.dart';
 import 'data/services/firestore_service.dart';
+import 'data/services/profile_image_service.dart';
+import 'data/services/profile_photo_storage_service.dart';
 import 'data/services/theme_local_service.dart';
 import 'firebase_options.dart';
 import 'presentation/pages/firebase_setup_page.dart';
@@ -26,6 +30,8 @@ Future<void> main() async {
     final auth = AuthRepositoryImpl(
       AuthService(FirebaseAuth.instance),
       firestore,
+      ProfileImageService(ImagePicker(), preferences),
+      ProfilePhotoStorageService(FirebaseStorage.instance),
     );
     final models = AppViewModels(
       authRepository: auth,

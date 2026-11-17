@@ -2,6 +2,10 @@ import 'package:atividade_mobile/app/app_widget.dart';
 import 'package:atividade_mobile/app/app_viewmodels.dart';
 import 'package:atividade_mobile/app/app_dependencies.dart';
 import 'package:atividade_mobile/core/constants/app_constants.dart';
+import 'package:atividade_mobile/core/result/result.dart';
+import 'package:atividade_mobile/domain/models/profile_photo_source.dart';
+import 'package:atividade_mobile/presentation/widgets/profile_photo_editor.dart';
+import 'package:atividade_mobile/presentation/widgets/student_avatar.dart';
 import 'package:atividade_mobile/presentation/widgets/star_rating.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_test/flutter_test.dart';
@@ -24,6 +28,94 @@ Future<void> finishSplash(WidgetTester tester) async {
 }
 
 void main() {
+  for (final source in ProfilePhotoSource.values) {
+    testWidgets(
+      'foto de perfil permite selecionar ${source.name} e cancelar sem trocar a foto',
+      (tester) async {
+        final environment = TestEnvironment(user: alice);
+        final models = await openApp(tester, environment);
+        await finishSplash(tester);
+        await tester.tap(find.byType(ProfilePhotoEditor));
+        await tester.pumpAndSettle();
+        expect(
+          find.text('Autorize a câmera quando solicitado.'),
+          findsOneWidget,
+        );
+        expect(
+          find.text('Você escolhe qual foto o app pode acessar.'),
+          findsOneWidget,
+        );
+        await tester.tap(
+          find.text(
+            source == ProfilePhotoSource.camera
+                ? 'Tirar foto'
+                : 'Escolher da galeria',
+          ),
+        );
+        await tester.pumpAndSettle();
+        expect(environment.auth.lastPhotoSource, source);
+        expect(environment.auth.photoCalls, 1);
+        expect(models.auth.user.value?.foto, isNull);
+        expect(find.text('Foto de perfil atualizada.'), findsNothing);
+        expect(models.auth.isAuthenticated, isTrue);
+        expect(tester.takeException(), isNull);
+        await tester.pumpWidget(const SizedBox());
+        await environment.auth.close();
+      },
+    );
+  }
+
+  testWidgets('foto é atualizada na interface e pode voltar às iniciais', (
+    tester,
+  ) async {
+    final environment = TestEnvironment(user: alice);
+    const url = 'https://example.com/alice.png';
+    environment.auth.photoResult = Success(alice.withPhoto(url));
+    final models = await openApp(tester, environment);
+    await finishSplash(tester);
+    await tester.tap(find.byType(ProfilePhotoEditor));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Escolher da galeria'));
+    await tester.pumpAndSettle();
+    expect(models.auth.user.value?.foto, url);
+    expect(find.text('Foto de perfil atualizada.'), findsOneWidget);
+    expect(
+      tester.widget<StudentAvatar>(find.byType(StudentAvatar).first).photoUrl,
+      url,
+    );
+    await tester.tap(find.byType(ProfilePhotoEditor));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Remover foto'));
+    await tester.pumpAndSettle();
+    expect(models.auth.user.value?.foto, isNull);
+    expect(find.text('Foto removida.'), findsOneWidget);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await environment.auth.close();
+  });
+
+  testWidgets('erro de permissão na foto é apresentado sem encerrar a sessão', (
+    tester,
+  ) async {
+    final environment = TestEnvironment(user: alice);
+    const message =
+        'Acesso à câmera negado. Autorize a câmera nas configurações do celular e tente novamente.';
+    environment.auth.photoResult = const Failure(message);
+    final models = await openApp(tester, environment);
+    await finishSplash(tester);
+    await tester.tap(find.byType(ProfilePhotoEditor));
+    await tester.pumpAndSettle();
+    await tester.tap(find.text('Tirar foto'));
+    await tester.pumpAndSettle();
+    expect(find.text(message), findsWidgets);
+    expect(models.auth.isAuthenticated, isTrue);
+    expect(models.auth.busy.value, isFalse);
+    expect(models.auth.photoBusy.value, isFalse);
+    expect(tester.takeException(), isNull);
+    await tester.pumpWidget(const SizedBox());
+    await environment.auth.close();
+  });
+
   testWidgets('Splash verifica sessão e abre login quando não autenticado', (
     tester,
   ) async {
@@ -160,6 +252,8 @@ void main() {
       final environment = TestEnvironment(user: alice);
       await openApp(tester, environment);
       await finishSplash(tester);
+      await tester.ensureVisible(find.text('Cadastrar pessoa'));
+      await tester.pumpAndSettle();
       await tester.tap(find.text('Cadastrar pessoa'));
       await tester.pumpAndSettle();
       expect(find.byType(StarRating), findsNothing);
